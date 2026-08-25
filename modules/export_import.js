@@ -1,27 +1,4 @@
 /*
-0. What is a module?
-    A module is just a file. Once you put "export"/"import" in a file
-    (or run it as type="module"), it stops being a regular script and
-    becomes a module:
-      - it runs in strict mode automatically (no "use strict" needed)
-      - it has its own top-level scope (top-level vars don't leak to
-        other modules or to the global `window`/`globalThis`)
-      - it is evaluated only once, no matter how many places import it
-        (the module is cached; every importer shares the same instance)
-      - `this` at the top level is `undefined` (not `window`)
-      - code only runs after the imports it needs are resolved
-        (imports are hoisted; you can `import` at the bottom of a file)
-    In the browser: <script type="module" src="main.js"></script>
-    In Node.js: either name the file *.mjs, or set "type": "module"
-    in package.json (then *.js is treated as an ES module too).
-
-    Below, each numbered section shows what would normally live in
-    SEPARATE files. The "// ---- file: x.js ----" comments mark file
-    boundaries; they can't literally run together in one file, this
-    is just to show every export/import shape in context.
-*/
-
-/*
 1. Named exports
     Export as many things as you want by name. Attach `export` right
     before a declaration, or export a list at the end of the file.
@@ -169,50 +146,7 @@ export * from "./user.js";                              // re-export ALL named e
 // import { LoginForm, User, validate } from "./auth/index.js";
 
 /*
-8. Dynamic import: import(...)
-    A function-like operator (not a real function - can't be
-    `.call`/`.apply`'d) that loads a module on demand and returns a
-    Promise resolving to that module's exports namespace object. It
-    works from regular scripts too, not just modules, and can be
-    called from anywhere, e.g. conditionally or inside a function.
-*/
-
-async function loadMath() {
-    const math = await import("./mathUtils.js"); // dynamic, lazy, code-split by bundlers
-    alert(math.add(2, 3)); // 5
-    // default export shows up as `.default` on the namespace object:
-    // const { default: User } = await import("./user2.js");
-}
-
-// same thing with .then instead of await:
-// import("./mathUtils.js").then((math) => alert(math.PI));
-
-/*
-9. import.meta
-    Gives metadata about the current module. In browsers/Node ESM,
-    `import.meta.url` is the module's own URL/file path - handy for
-    resolving assets relative to the current file.
-*/
-
-// alert(import.meta.url); // e.g. "file:///path/to/exports_imports_modules.js"
-
-/*
-10. Top-level await
-    Inside a module (not a plain script), `await` is allowed directly
-    at the top level - no wrapping async function needed. Modules that
-    import a top-level-await module wait for it to finish before they
-    themselves start running.
-*/
-
-// ---- file: config.js ----
-// const res = await fetch("/config.json");
-// export const config = await res.json();
-
-// ---- file: main8.js ----
-// import { config } from "./config.js"; // waits for config.js's fetch to settle
-
-/*
-11. CommonJS (Node.js's older module system: require / module.exports)
+8. CommonJS (Node.js's older module system: require / module.exports)
     Before ES modules, and still the default for plain .js files in
     Node without "type": "module", Node used CommonJS. Every file is
     wrapped in a function receiving (exports, require, module,
@@ -243,7 +177,7 @@ module.exports = { addCJS, PI_CJS }; // replace the whole exports object
 // const addOnly = require("./mathUtilsCJS.js").addCJS;
 
 /*
-12. Mixing ESM and CommonJS
+9. Mixing ESM and CommonJS
     - .mjs is always an ES module; .cjs is always CommonJS, regardless
       of "type" in package.json.
     - plain .js follows package.json's "type" ("module" -> ESM,
@@ -259,26 +193,3 @@ module.exports = { addCJS, PI_CJS }; // replace the whole exports object
 // ---- file: main10.mjs (ESM importing CommonJS) ----
 // import mathCJS from "./mathUtilsCJS.js"; // whole module.exports as default
 // alert(mathCJS.addCJS(2, 3));
-
-/*
-13. Modules are singletons, evaluated once
-    Whichever syntax is used, importing the same module from many
-    places always shares one evaluated instance - side effects (like
-    the top-level console.log in section 6, or a shared counter) run
-    only the first time, and every importer sees the same state.
-*/
-
-// ---- file: counterStore.js ----
-export let count = 0;
-export function increment() {
-    count++;
-}
-
-// ---- file: a.js ----
-// import { increment } from "./counterStore.js";
-// increment();
-
-// ---- file: b.js ----
-// import { count } from "./counterStore.js";
-// alert(count); // 1 - sees a.js's increment, because count is a live
-//                  binding into the ONE shared module instance
